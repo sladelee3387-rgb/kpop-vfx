@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K-POP 뮤직비디오 CGI & VFX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #06060f;
+    --bg2:      #0d0d20;
+    --bg3:      #12122a;
+    --card:     #131326;
+    --pink:     #ff2d78;
+    --cyan:     #00e5ff;
+    --purple:   #b44fff;
+    --gold:     #ffb347;
+    --green:    #44dd88;
+    --white:    #f0f0ff;
+    --gray:     #7777aa;
+    --lgray:    #ccccdd;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Noto Sans KR', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* ── Custom Cursor ── */
+  #cursor {
+    position: fixed;
+    width: 12px; height: 12px;
+    background: var(--pink);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%,-50%);
+    transition: transform 0.08s, width 0.2s, height 0.2s, background 0.2s;
+    mix-blend-mode: screen;
+  }
+  #cursor-ring {
+    position: fixed;
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--cyan);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%,-50%);
+    transition: transform 0.18s ease-out, width 0.2s, height 0.2s, opacity 0.2s;
+    opacity: 0.7;
+  }
+  body:hover #cursor { opacity: 1; }
+
+  /* ── Noise overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9990;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 3rem;
+    height: 64px;
+    background: rgba(6,6,15,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(180,79,255,0.2);
+  }
+  .nav-logo {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--pink);
+  }
+  .nav-logo span { color: var(--cyan); }
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+  .nav-links a {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--gray);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--cyan); }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 100px 6vw 60px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    animation: orbFloat 8s ease-in-out infinite;
+  }
+  .orb1 { width: 500px; height: 500px; background: rgba(180,79,255,0.12); top: -100px; right: -100px; animation-delay: 0s; }
+  .orb2 { width: 350px; height: 350px; background: rgba(255,45,120,0.1); top: 200px; right: 200px; animation-delay: -3s; }
+  .orb3 { width: 400px; height: 400px; background: rgba(0,229,255,0.07); bottom: -100px; left: -50px; animation-delay: -5s; }
+
+  @keyframes orbFloat {
+    0%,100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-30px) scale(1.05); }
+  }
+
+  /* Grid lines bg */
+  .grid-lines {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(180,79,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(180,79,255,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .hero-content { position: relative; z-index: 1; max-width: 900px; }
+
+  .hero-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--cyan);
+    letter-spacing: 0.2em;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.2s forwards;
+  }
+
+  .hero-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: clamp(3rem, 8vw, 7rem);
+    line-height: 0.95;
+    letter-spacing: -0.01em;
+    margin-bottom: 1rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.4s forwards;
+  }
+  .hero-title .line1 { color: var(--white); display: block; }
+  .hero-title .line2 {
+    display: block;
+    background: linear-gradient(90deg, var(--pink), var(--purple), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    font-size: 1.1rem;
+    color: var(--lgray);
+    font-weight: 300;
+    max-width: 560px;
+    line-height: 1.7;
+    margin-bottom: 3rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.6s forwards;
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 2px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.8s forwards;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid rgba(180,79,255,0.25);
+    padding: 1.4rem 2rem;
+    flex: 1;
+    max-width: 200px;
+    transition: border-color 0.3s, transform 0.3s;
+    cursor: pointer;
+  }
+  .stat-card:first-child { border-left: 3px solid var(--pink); }
+  .stat-card:nth-child(2) { border-left: 3px solid var(--cyan); }
+  .stat-card:nth-child(3) { border-left: 3px solid var(--purple); }
+  .stat-card:hover { border-color: var(--pink); transform: translateY(-4px); }
+  .stat-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--pink);
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+  .stat-card:nth-child(2) .stat-num { color: var(--cyan); }
+  .stat-card:nth-child(3) .stat-num { color: var(--purple); }
+  .stat-label {
+    font-size: 0.72rem;
+    color: var(--gray);
+    line-height: 1.5;
+  }
+
+  /* scroll arrow */
+  .scroll-hint {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    animation: fadeUp 1s 1.5s forwards;
+  }
+  .scroll-hint span {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--gray);
+    letter-spacing: 0.15em;
+  }
+  .scroll-arrow {
+    width: 1px; height: 40px;
+    background: linear-gradient(to bottom, transparent, var(--cyan));
+    animation: scrollDrop 1.5s ease-in-out infinite;
+  }
+  @keyframes scrollDrop {
+    0%,100% { transform: scaleY(1); opacity: 1; }
+    50% { transform: scaleY(0.5) translateY(10px); opacity: 0.3; }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SECTION COMMON ── */
+  section {
+    padding: 100px 6vw;
+    position: relative;
+  }
+
+  .section-header {
+    margin-bottom: 3.5rem;
+  }
+  .section-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--pink);
+    letter-spacing: 0.2em;
+    margin-bottom: 0.8rem;
+  }
+  .section-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    color: var(--white);
+    line-height: 1.1;
+  }
+  .section-title span { color: var(--cyan); }
+  .section-line {
+    width: 60px; height: 3px;
+    background: linear-gradient(90deg, var(--pink), var(--purple));
+    margin-top: 1rem;
+  }
+
+  /* ── REVEAL ANIMATION ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── SLIDE 2: MARKET ── */
+  #market { background: var(--bg2); }
+  .market-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: start;
+  }
+  .market-points { display: flex; flex-direction: column; gap: 1.5rem; }
+  .market-point {
+    border-left: 3px solid var(--pink);
+    padding-left: 1.2rem;
+  }
+  .market-point h3 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--cyan);
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.05em;
+  }
+  .market-point p { font-size: 0.88rem; color: var(--lgray); line-height: 1.7; }
+
+  .chart-box {
+    background: var(--card);
+    border: 1px solid rgba(180,79,255,0.2);
+    padding: 2rem;
+  }
+  .chart-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--cyan);
+    letter-spacing: 0.1em;
+    margin-bottom: 1.8rem;
+    text-align: center;
+  }
+  .bar-item { margin-bottom: 1.3rem; }
+  .bar-label {
+    font-size: 0.8rem;
+    color: var(--lgray);
+    margin-bottom: 0.4rem;
+  }
+  .bar-track {
+    background: rgba(255,255,255,0.06);
+    height: 10px;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    width: 0;
+    transition: width 1.2s cubic-bezier(0.16,1,0.3,1);
+  }
+  .bar-pct {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--white);
+    margin-top: 0.3rem;
+    text-align: right;
+  }
+
+  /* ── SLIDE 3: CGI vs VFX ── */
+  #compare { background: var(--bg); }
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1.5rem;
+    align-items: stretch;
+  }
+  .compare-card {
+    background: var(--card);
+    border: 1px solid transparent;
+    padding: 2.2rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s;
+  }
+  .compare-card:hover { transform: translateY(-6px); }
+  .compare-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .compare-card.cgi { border-color: rgba(255,45,120,0.25); }
+  .compare-card.cgi::before { background: var(--pink); }
+  .compare-card.vfx { border-color: rgba(0,229,255,0.25); }
+  .compare-card.vfx::before { background: var(--cyan); }
+  .card-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    margin-bottom: 0.5rem;
+  }
+  .compare-card.cgi .card-tag { color: var(--pink); }
+  .compare-card.vfx .card-tag { color: var(--cyan); }
+  .card-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 1.5rem;
+  }
+  .compare-item {
+    display: flex;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    color: var(--lgray);
+    line-height: 1.5;
+  }
+  .compare-item::before {
+    content: '▸';
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .compare-card.cgi .compare-item::before { color: var(--pink); }
+  .compare-card.vfx .compare-item::before { color: var(--cyan); }
+
+  .vs-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .vs-badge {
+    width: 56px; height: 56px;
+    background: var(--purple);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    box-shadow: 0 0 30px rgba(180,79,255,0.5);
+    animation: pulseBadge 2s ease-in-out infinite;
+  }
+  @keyframes pulseBadge {
+    0%,100% { box-shadow: 0 0 20px rgba(180,79,255,0.4); }
+    50% { box-shadow: 0 0 40px rgba(180,79,255,0.8); }
+  }
+
+  /* ── SLIDE 4: IMPORTANCE ── */
+  #importance { background: var(--bg2); }
+  .importance-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5px;
+  }
+  .imp-card {
+    background: var(--card);
+    padding: 2rem;
+    border-top: 2px solid transparent;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .imp-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--pink), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .imp-card:hover { background: #1a1a38; transform: translateY(-4px); }
+  .imp-card:hover::after { opacity: 0.04; }
+  .imp-card:nth-child(1) { border-color: var(--pink); }
+  .imp-card:nth-child(2) { border-color: var(--cyan); }
+  .imp-card:nth-child(3) { border-color: var(--purple); }
+  .imp-card:nth-child(4) { border-color: var(--gold); }
+  .imp-card:nth-child(5) { border-color: var(--green); }
+  .imp-card:nth-child(6) { border-color: var(--pink); }
+  .imp-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--gray);
+    letter-spacing: 0.15em;
+    margin-bottom: 0.7rem;
+  }
+  .imp-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 0.8rem;
+  }
+  .imp-body { font-size: 0.83rem; color: var(--lgray); line-height: 1.65; }
+
+  /* ── SLIDE 5: PIPELINE (FLOW) ── */
+  #pipeline { background: var(--bg); }
+  .pipeline-flow {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    margin-bottom: 3rem;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+  }
+  .pipe-step {
+    flex: 1;
+    min-width: 160px;
+    background: var(--card);
+    border: 1px solid rgba(180,79,255,0.15);
+    padding: 1.5rem 1.2rem;
+    position: relative;
+    transition: border-color 0.3s, transform 0.3s;
+    cursor: pointer;
+  }
+  .pipe-step:hover { border-color: var(--purple); transform: translateY(-6px); }
+  .pipe-step:not(:last-child)::after {
+    content: '›';
+    position: absolute;
+    right: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.8rem;
+    color: var(--purple);
+    z-index: 1;
+  }
+  .pipe-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--gray);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.1em;
+  }
+  .pipe-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 0.5rem;
+    white-space: pre-line;
+    line-height: 1.2;
+  }
+  .pipe-sub { font-size: 0.78rem; color: var(--gray); line-height: 1.5; }
+  .pipe-step:nth-child(1) .pipe-num, .pipe-step:nth-child(1) .pipe-color { color: var(--purple); }
+  .pipe-step:nth-child(2) .pipe-num { color: var(--pink); }
+  .pipe-step:nth-child(3) .pipe-num { color: var(--cyan); }
+  .pipe-step:nth-child(4) .pipe-num { color: var(--gold); }
+  .pipe-step:nth-child(5) .pipe-num { color: var(--green); }
+
+  .coexist-grid {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 1.5rem;
+  }
+  .coexist-card {
+    background: var(--card);
+    border: 1px solid rgba(255,45,120,0.15);
+    padding: 1.5rem;
+    border-left: 3px solid var(--pink);
+  }
+  .coexist-card:nth-child(2) { border-left-color: var(--cyan); }
+  .coexist-card:nth-child(3) { border-left-color: var(--purple); }
+  .coexist-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--pink);
+    margin-bottom: 0.5rem;
+  }
+  .coexist-card:nth-child(2) .coexist-title { color: var(--cyan); }
+  .coexist-card:nth-child(3) .coexist-title { color: var(--purple); }
+  .coexist-body { font-size: 0.83rem; color: var(--lgray); line-height: 1.6; }
+
+  /* ── SLIDE 6: TOOLCHAIN ── */
+  #tools { background: var(--bg2); }
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5px;
+  }
+  .tool-card {
+    background: var(--card);
+    padding: 1.8rem 2rem;
+    border-left: 3px solid var(--pink);
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  .tool-card:hover { background: #1a1a38; }
+  .tool-card:nth-child(1) { border-color: var(--pink); }
+  .tool-card:nth-child(2) { border-color: var(--cyan); }
+  .tool-card:nth-child(3) { border-color: var(--purple); }
+  .tool-card:nth-child(4) { border-color: var(--gold); }
+  .tool-card:nth-child(5) { border-color: var(--green); }
+  .tool-card:nth-child(6) { border-color: var(--pink); }
+  .tool-cat {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--pink);
+    margin-bottom: 1rem;
+    letter-spacing: 0.05em;
+  }
+  .tool-card:nth-child(2) .tool-cat { color: var(--cyan); }
+  .tool-card:nth-child(3) .tool-cat { color: var(--purple); }
+  .tool-card:nth-child(4) .tool-cat { color: var(--gold); }
+  .tool-card:nth-child(5) .tool-cat { color: var(--green); }
+  .tool-list { list-style: none; }
+  .tool-list li {
+    font-size: 0.82rem;
+    color: var(--lgray);
+    padding: 0.35rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    display: flex;
+    gap: 0.6rem;
+  }
+  .tool-list li::before { content: '•'; color: var(--gray); }
+  .tool-name { color: var(--white); font-weight: 500; }
+
+  /* ── SLIDE 7: PRODUCTION PHASES ── */
+  #phases { background: var(--bg); }
+  .phases-tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 2rem;
+  }
+  .phase-tab {
+    flex: 1;
+    padding: 1rem 1.5rem;
+    background: var(--card);
+    border: 1px solid rgba(180,79,255,0.1);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.3s;
+    border-bottom: 3px solid transparent;
+  }
+  .phase-tab.active {
+    background: #1a1a38;
+  }
+  .phase-tab:nth-child(1).active { border-bottom-color: var(--purple); }
+  .phase-tab:nth-child(2).active { border-bottom-color: var(--pink); }
+  .phase-tab:nth-child(3).active { border-bottom-color: var(--cyan); }
+  .tab-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gray);
+    transition: color 0.3s;
+    letter-spacing: 0.08em;
+  }
+  .phase-tab.active .tab-title,
+  .phase-tab:hover .tab-title { color: var(--white); }
+  .tab-sub { font-size: 0.72rem; color: var(--gray); margin-top: 0.2rem; }
+
+  .phase-panel { display: none; }
+  .phase-panel.active { display: grid; grid-template-columns: repeat(2,1fr); gap: 1rem; }
+
+  .phase-item {
+    background: var(--card);
+    border: 1px solid rgba(180,79,255,0.1);
+    padding: 1.2rem 1.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    transition: border-color 0.3s;
+  }
+  .phase-item:hover { border-color: rgba(180,79,255,0.3); }
+  .phase-item-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--purple);
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .panel-pink .phase-item-num { color: var(--pink); }
+  .panel-cyan .phase-item-num { color: var(--cyan); }
+  .phase-item-text { font-size: 0.85rem; color: var(--lgray); line-height: 1.5; }
+
+  /* ── SLIDE 8: CASE STUDIES ── */
+  #cases { background: var(--bg2); }
+  .cases-list { display: flex; flex-direction: column; gap: 2px; }
+  .case-card {
+    background: var(--card);
+    border: 1px solid rgba(180,79,255,0.12);
+    border-left: 4px solid var(--pink);
+    display: grid;
+    grid-template-columns: 200px 1fr 260px;
+    gap: 0;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .case-card:hover {
+    transform: translateX(6px);
+    box-shadow: -4px 0 24px rgba(255,45,120,0.15);
+  }
+  .case-card:nth-child(2) { border-left-color: var(--cyan); }
+  .case-card:nth-child(2):hover { box-shadow: -4px 0 24px rgba(0,229,255,0.15); }
+  .case-card:nth-child(3) { border-left-color: var(--purple); }
+  .case-card:nth-child(3):hover { box-shadow: -4px 0 24px rgba(180,79,255,0.15); }
+
+  .case-info {
+    padding: 2rem;
+    border-right: 1px solid rgba(255,255,255,0.05);
+  }
+  .case-artist {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1.5rem;
+    color: var(--pink);
+    margin-bottom: 0.4rem;
+  }
+  .case-card:nth-child(2) .case-artist { color: var(--cyan); }
+  .case-card:nth-child(3) .case-artist { color: var(--purple); }
+  .case-mv { font-size: 0.78rem; color: var(--gray); font-style: italic; line-height: 1.5; margin-bottom: 1rem; }
+  .case-tech {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--gray);
+    letter-spacing: 0.05em;
+    line-height: 1.5;
+  }
+
+  .case-vfx {
+    padding: 2rem;
+    border-right: 1px solid rgba(255,255,255,0.05);
+  }
+  .case-vfx-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--gray);
+    letter-spacing: 0.15em;
+    margin-bottom: 0.5rem;
+  }
+  .case-vfx-text { font-size: 0.85rem; color: var(--lgray); line-height: 1.6; }
+
+  .case-impact {
+    padding: 2rem;
+    background: rgba(255,45,120,0.04);
+  }
+  .case-card:nth-child(2) .case-impact { background: rgba(0,229,255,0.04); }
+  .case-card:nth-child(3) .case-impact { background: rgba(180,79,255,0.04); }
+  .case-impact-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--pink);
+    letter-spacing: 0.15em;
+    margin-bottom: 0.5rem;
+  }
+  .case-card:nth-child(2) .case-impact-label { color: var(--cyan); }
+  .case-card:nth-child(3) .case-impact-label { color: var(--purple); }
+  .case-impact-text { font-size: 0.83rem; color: var(--lgray); line-height: 1.6; }
+
+  /* ── SLIDE 9: CHALLENGES ── */
+  #challenges { background: var(--bg); }
+  .challenges-grid {
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
+    gap: 1.5rem;
+  }
+  .challenge-card {
+    background: var(--card);
+    border: 1px solid rgba(180,79,255,0.12);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s;
+  }
+  .challenge-card:hover { transform: translateY(-4px); }
+  .challenge-header {
+    padding: 1.2rem 1.5rem;
+    background: rgba(255,45,120,0.08);
+    border-bottom: 1px solid rgba(255,45,120,0.1);
+  }
+  .challenge-card:nth-child(2) .challenge-header { background: rgba(180,79,255,0.08); border-color: rgba(180,79,255,0.1); }
+  .challenge-card:nth-child(3) .challenge-header { background: rgba(0,229,255,0.08); border-color: rgba(0,229,255,0.1); }
+  .challenge-card:nth-child(4) .challenge-header { background: rgba(255,179,71,0.08); border-color: rgba(255,179,71,0.1); }
+  .challenge-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--pink);
+  }
+  .challenge-card:nth-child(2) .challenge-title { color: var(--purple); }
+  .challenge-card:nth-child(3) .challenge-title { color: var(--cyan); }
+  .challenge-card:nth-child(4) .challenge-title { color: var(--gold); }
+  .challenge-body { padding: 1.5rem; }
+  .challenge-detail { font-size: 0.83rem; color: var(--lgray); line-height: 1.6; margin-bottom: 1rem; }
+  .solution-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--pink);
+    background: rgba(255,45,120,0.1);
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    margin-bottom: 0.6rem;
+  }
+  .challenge-card:nth-child(2) .solution-label { color: var(--purple); background: rgba(180,79,255,0.1); }
+  .challenge-card:nth-child(3) .solution-label { color: var(--cyan); background: rgba(0,229,255,0.1); }
+  .challenge-card:nth-child(4) .solution-label { color: var(--gold); background: rgba(255,179,71,0.1); }
+  .solution-text { font-size: 0.83rem; color: var(--cyan); line-height: 1.6; }
+  .challenge-card:nth-child(2) .solution-text { color: var(--purple); }
+  .challenge-card:nth-child(3) .solution-text { color: var(--pink); }
+  .challenge-card:nth-child(4) .solution-text { color: var(--green); }
+
+  /* ── SLIDE 10: FUTURE + CONCLUSION ── */
+  #future { background: var(--bg2); position: relative; overflow: hidden; }
+  .future-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+  }
+  .trend-list { display: flex; flex-direction: column; gap: 1rem; }
+  .trend-item {
+    background: var(--card);
+    border: 1px solid rgba(180,79,255,0.12);
+    padding: 1.3rem 1.5rem;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .trend-item:hover { border-color: var(--cyan); transform: translateX(6px); }
+  .trend-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--cyan);
+    background: rgba(0,229,255,0.08);
+    padding: 0.2rem 0.5rem;
+    align-self: flex-start;
+    white-space: nowrap;
+  }
+  .trend-content h4 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 0.3rem;
+  }
+  .trend-content p { font-size: 0.82rem; color: var(--lgray); line-height: 1.5; }
+
+  .conclusion-box {
+    background: var(--card);
+    border: 1px solid rgba(255,45,120,0.3);
+    padding: 2.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .conclusion-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--pink), var(--purple), var(--cyan));
+  }
+  .conclusion-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1.4rem;
+    color: var(--white);
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+  .conclusion-list { display: flex; flex-direction: column; gap: 1.2rem; }
+  .conclusion-item {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.88rem;
+    color: var(--lgray);
+    line-height: 1.6;
+  }
+  .c-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--pink);
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  /* closing tagline */
+  .tagline-bar {
+    background: var(--bg);
+    border-top: 1px solid rgba(255,45,120,0.2);
+    padding: 3rem 6vw;
+    text-align: center;
+  }
+  .tagline {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    color: var(--gray);
+    letter-spacing: 0.02em;
+  }
+  .tagline em {
+    font-style: normal;
+    background: linear-gradient(90deg, var(--pink), var(--purple), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--bg);
+    border-top: 1px solid rgba(180,79,255,0.1);
+    padding: 2rem 6vw;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  footer span {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--gray);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── Progress bar ── */
+  #progress {
+    position: fixed;
+    top: 64px; left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--pink), var(--purple), var(--cyan));
+    z-index: 999;
+    width: 0;
+    transition: width 0.1s;
+  }
+
+  /* ── Glow effect on section border ── */
+  section:nth-child(even)::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(180,79,255,0.3), transparent);
+  }
+
+  /* ── Back to top ── */
+  #back-top {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 44px; height: 44px;
+    background: rgba(255,45,120,0.15);
+    border: 1px solid var(--pink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    transition: background 0.2s;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, background 0.2s;
+  }
+  #back-top.show { opacity: 1; pointer-events: all; }
+  #back-top:hover { background: rgba(255,45,120,0.3); }
+  #back-top svg { width: 18px; fill: var(--pink); }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .market-layout, .compare-grid, .cases-list .case-card,
+    .future-layout, .challenges-grid { grid-template-columns: 1fr; }
+    .compare-grid { display: flex; flex-direction: column; }
+    .vs-divider { transform: rotate(90deg); }
+    .case-card { grid-template-columns: 1fr; }
+    .importance-grid { grid-template-columns: repeat(2,1fr); }
+    nav { padding: 0 1.5rem; }
+    .nav-links { gap: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- Progress bar -->
+<div id="progress"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">K-POP <span>VFX</span></div>
+  <ul class="nav-links">
+    <li><a href="#market">시장</a></li>
+    <li><a href="#compare">CGI/VFX</a></li>
+    <li><a href="#importance">중요성</a></li>
+    <li><a href="#pipeline">공존</a></li>
+    <li><a href="#tools">툴체인</a></li>
+    <li><a href="#phases">파이프라인</a></li>
+    <li><a href="#cases">사례</a></li>
+    <li><a href="#challenges">과제</a></li>
+    <li><a href="#future">미래</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg">
+    <div class="grid-lines"></div>
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+  </div>
+  <div class="hero-content">
+    <p class="hero-tag">// K-POP ENTERTAINMENT · VISUAL PRODUCTION REPORT 2024/2025</p>
+    <h1 class="hero-title">
+      <span class="line1">뮤직비디오</span>
+      <span class="line2">CGI & VFX</span>
+    </h1>
+    <p class="hero-sub">한국 엔터테인먼트 산업에서 시각 특수효과의 중요성, CGI와 VFX의 전략적 공존, 그리고 실무 제작 파이프라인에 대한 심층 분석</p>
+    <div class="hero-stats">
+      <div class="stat-card">
+        <div class="stat-num">₩2.4조</div>
+        <div class="stat-label">글로벌 K-pop<br>시장 규모 (2024)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">60~80%</div>
+        <div class="stat-label">MV 예산 중<br>VFX/CGI 비중</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">3~6개월</div>
+        <div class="stat-label">대형 MV 기준<br>VFX 제작 기간</div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <span>SCROLL</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- MARKET -->
+<section id="market">
+  <div class="section-header reveal">
+    <div class="section-num">01 — MARKET OVERVIEW</div>
+    <h2 class="section-title">K-POP 뮤직비디오 <span>VFX 시장 개요</span></h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="market-layout reveal">
+    <div class="market-points">
+      <div class="market-point">
+        <h3>폭발적 성장</h3>
+        <p>BTS, BLACKPINK, aespa 등을 필두로 K-pop MV의 글로벌 조회수는 수십억 회를 돌파. YouTube 단일 MV 공개 24시간 내 1억 뷰 달성이 기준치로 부상하며 제작 수준의 전반적 격상을 견인하고 있습니다.</p>
+      </div>
+      <div class="market-point">
+        <h3>VFX 수요 급증</h3>
+        <p>SM, HYBE, YG, JYP 등 대형 기획사들이 MV 1편당 평균 3~10억 원의 VFX 예산을 편성. SM의 'aespa' 시리즈 MV는 편당 최대 15억 원 수준의 제작비를 투자하며 업계 기준점을 새로 설정하고 있습니다.</p>
+      </div>
+      <div class="market-point">
+        <h3>글로벌 수준 요구</h3>
+        <p>한국 내 VFX 스튜디오 역량 급성장. 덱스터 스튜디오, 위즈웍스, 모팩 등이 K-pop 전문 VFX 팀을 구성하며 할리우드급 기술력을 확보해 가고 있습니다.</p>
+      </div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">기획사별 MV 평균 VFX 투자 비중</div>
+      <div class="bar-item" data-pct="85" data-color="#ff2d78">
+        <div class="bar-label">SM Entertainment</div>
+        <div class="bar-track"><div class="bar-fill" style="background:#ff2d78"></div></div>
+        <div class="bar-pct">85%</div>
+      </div>
+      <div class="bar-item" data-pct="78" data-color="#00e5ff">
+        <div class="bar-label">HYBE</div>
+        <div class="bar-track"><div class="bar-fill" style="background:#00e5ff"></div></div>
+        <div class="bar-pct">78%</div>
+      </div>
+      <div class="bar-item" data-pct="72" data-color="#b44fff">
+        <div class="bar-label">YG Entertainment</div>
+        <div class="bar-track"><div class="bar-fill" style="background:#b44fff"></div></div>
+        <div class="bar-pct">72%</div>
+      </div>
+      <div class="bar-item" data-pct="65" data-color="#ffb347">
+        <div class="bar-label">JYP Entertainment</div>
+        <div class="bar-track"><div class="bar-fill" style="background:#ffb347"></div></div>
+        <div class="bar-pct">65%</div>
+      </div>
+      <div class="bar-item" data-pct="40" data-color="#7777aa">
+        <div class="bar-label">기타 중소 기획사</div>
+        <div class="bar-track"><div class="bar-fill" style="background:#7777aa"></div></div>
+        <div class="bar-pct">40%</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARE -->
+<section id="compare">
+  <div class="section-header reveal">
+    <div class="section-num">02 — DEFINITION</div>
+    <h2 class="section-title">CGI와 VFX: <span>개념 정의 및 차이점</span></h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="compare-grid reveal">
+    <div class="compare-card cgi">
+      <div class="card-tag">CGI — COMPUTER GENERATED IMAGERY</div>
+      <div class="card-title">컴퓨터 생성 이미지</div>
+      <div class="compare-item">컴퓨터로 완전히 생성된 디지털 이미지 및 애니메이션</div>
+      <div class="compare-item">3D 모델링, 텍스처링, 라이팅, 렌더링 전 과정 포함</div>
+      <div class="compare-item">aespa의 'ae' 디지털 아바타, 완전 디지털 배경 세트가 대표 사례</div>
+      <div class="compare-item">Maya, Cinema 4D, Blender, Houdini, Unreal Engine 활용</div>
+      <div class="compare-item">전체 CG 제작 시 실사 촬영 없이도 MV 구현 가능</div>
+      <div class="compare-item">고비용·고퀄리티 — 상위 K-pop 기획사의 전략적 투자 영역</div>
+    </div>
+    <div class="vs-divider">
+      <div class="vs-badge">VS</div>
+    </div>
+    <div class="compare-card vfx">
+      <div class="card-tag">VFX — VISUAL EFFECTS</div>
+      <div class="card-title">시각 특수효과</div>
+      <div class="compare-item">실사 촬영본에 디지털 효과를 합성·가공하는 기술</div>
+      <div class="compare-item">그린/블루스크린, 모션캡처, 로토스코핑 포함</div>
+      <div class="compare-item">아티스트에게 불꽃·파티클·홀로그램 합성이 K-pop의 주 활용 방식</div>
+      <div class="compare-item">Nuke, After Effects, Flame, DaVinci Resolve 활용</div>
+      <div class="compare-item">실제 촬영 + 디지털 합성의 결합 — 가장 보편적 K-pop MV 방식</div>
+      <div class="compare-item">실재감과 화려함을 동시에 추구하는 하이브리드 접근</div>
+    </div>
+  </div>
+</section>
+
+<!-- IMPORTANCE -->
+<section id="importance">
+  <div class="section-header reveal">
+    <div class="section-num">03 — STRATEGIC VALUE</div>
+    <h2 class="section-title">K-pop 산업에서 <span>CGI/VFX의 전략적 중요성</span></h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="importance-grid reveal">
+    <div class="imp-card">
+      <div class="imp-badge">[ GLOBAL ]</div>
+      <div class="imp-title">글로벌 경쟁력 확보</div>
+      <div class="imp-body">헐리우드·팝 시장과 동등한 비주얼 퀄리티로 해외 팬덤 유입 및 스트리밍 수익 극대화. 'Visual K-pop' 정체성 구축의 핵심.</div>
+    </div>
+    <div class="imp-card">
+      <div class="imp-badge">[ WORLD ]</div>
+      <div class="imp-title">세계관 시각화</div>
+      <div class="imp-body">SM의 SMCU, HYBE의 BTS Universe 등 복합 내러티브를 CGI로 구현. 팬들이 투자하는 '세계관 경제' 형성의 출발점.</div>
+    </div>
+    <div class="imp-card">
+      <div class="imp-badge">[ BRAND ]</div>
+      <div class="imp-title">아티스트 브랜딩</div>
+      <div class="imp-body">VFX로 연출된 아이코닉 장면이 아티스트 이미지의 일부로 굳어짐. 블랙핑크 'How You Like That' 칸 장면 등이 대표 사례.</div>
+    </div>
+    <div class="imp-card">
+      <div class="imp-badge">[ SNS ]</div>
+      <div class="imp-title">SNS 바이럴 효과</div>
+      <div class="imp-body">시각적 임팩트가 강한 VFX 씬은 클립 단위로 SNS에서 확산. TikTok·Reels에서 자발적 재생산 유도 → 무료 마케팅 효과 창출.</div>
+    </div>
+    <div class="imp-card">
+      <div class="imp-badge">[ IP ]</div>
+      <div class="imp-title">수익 다각화</div>
+      <div class="imp-body">고퀄리티 CGI 자산이 게임, 메타버스, 굿즈 IP로 재활용. aespa 아바타 기반 게임 콘텐츠, 가상 팬미팅 등 신규 수익원 창출.</div>
+    </div>
+    <div class="imp-card">
+      <div class="imp-badge">[ AWARD ]</div>
+      <div class="imp-title">시상식·어워즈 수상</div>
+      <div class="imp-body">MTV VMAs, Mnet MMAs 등에서 VFX 기반 퍼포먼스가 화제성·수상 실적에 직결. 방송·스트리밍 플랫폼의 투자 유치 근거로 작용.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PIPELINE COEXIST -->
+<section id="pipeline">
+  <div class="section-header reveal">
+    <div class="section-num">04 — COEXISTENCE</div>
+    <h2 class="section-title">CGI와 VFX의 공존: <span>하이브리드 제작 전략</span></h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="pipeline-flow reveal">
+    <div class="pipe-step">
+      <div class="pipe-num">01 — PRE-VIZ</div>
+      <div class="pipe-name">프리비주얼라이제이션</div>
+      <div class="pipe-sub">스토리보드, 애니매틱, 레이아웃 결정</div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">02 — LIVE ACTION</div>
+      <div class="pipe-name">실사 촬영</div>
+      <div class="pipe-sub">그린스크린, 배우/댄서 촬영, 모캡</div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">03 — CGI</div>
+      <div class="pipe-name">CGI 자산 제작</div>
+      <div class="pipe-sub">캐릭터, 환경, 오브젝트 3D 모델링</div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">04 — VFX</div>
+      <div class="pipe-name">VFX 합성</div>
+      <div class="pipe-sub">실사+CG 레이어 합성, 파티클, 글로우</div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">05 — DI</div>
+      <div class="pipe-name">색보정 & 마감</div>
+      <div class="pipe-sub">최종 컬러 그레이딩, 출력 납품</div>
+    </div>
+  </div>
+  <div class="coexist-grid reveal">
+    <div class="coexist-card">
+      <div class="coexist-title">비용 최적화</div>
+      <div class="coexist-body">전체 CG 제작은 비용이 2~5배 높음. 실사 촬영과 CG를 전략적으로 분리해 예산 효율을 극대화합니다.</div>
+    </div>
+    <div class="coexist-card">
+      <div class="coexist-title">현실감 + 환상성</div>
+      <div class="coexist-body">아티스트의 실제 퍼포먼스와 CG 세계관을 결합해 팬이 공감하는 동시에 경이로움을 느끼게 합니다.</div>
+    </div>
+    <div class="coexist-card">
+      <div class="coexist-title">제작 유연성</div>
+      <div class="coexist-body">촬영 후 감독·기획사 피드백에 따라 배경·효과 변경 가능. Post 단계 수정의 자유도를 폭넓게 확보합니다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- TOOLS -->
+<section id="tools">
+  <div class="section-header reveal">
+    <div class="section-num">05 — TOOLCHAIN</div>
+    <h2 class="section-title">실무 핵심 기술 및 <span>툴체인</span></h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="tools-grid reveal">
+    <div class="tool-card">
+      <div class="tool-cat">3D 모델링 & 애니메이션</div>
+      <ul class="tool-list">
+        <li><span class="tool-name">Autodesk Maya</span>&nbsp;— 캐릭터 리깅, 애니메이션 표준</li>
+        <li><span class="tool-name">Cinema 4D</span>&nbsp;— 모션그래픽, MoGraph 시스템</li>
+        <li><span class="tool-name">Houdini</span>&nbsp;— 절차적 FX, 파티클 시뮬레이션</li>
+        <li><span class="tool-name">Blender</span>&nbsp;— 오픈소스, 소규모 팀 활용</li>
+      </ul>
+    </div>
+    <div class="tool-card">
+      <div class="tool-cat">실시간 렌더링 & 버추얼 프로덕션</div>
+      <ul class="tool-list">
+        <li><span class="tool-name">Unreal Engine 5</span>&nbsp;— LED 볼륨 스테이지 실시간 렌더</li>
+        <li><span class="tool-name">Unity</span>&nbsp;— 인터랙티브 콘텐츠, 모바일 연동</li>
+        <li><span class="tool-name">LED Volume Stage</span>&nbsp;— 카메라 트래킹+CG 배경</li>
+        <li><span class="tool-name">NVIDIA RTX GPU</span>&nbsp;— 실시간 레이트레이싱</li>
+      </ul>
+    </div>
+    <div class="tool-card">
+      <div class="tool-cat">VFX 합성 & 컴포지팅</div>
+      <ul class="tool-list">
+        <li><span class="tool-name">Foundry Nuke</span>&nbsp;— 할리우드 표준 컴포지터</li>
+        <li><span class="tool-name">After Effects</span>&nbsp;— 중간 복잡도 VFX, 모션그래픽</li>
+        <li><span class="tool-name">Blackmagic Flame</span>&nbsp;— 실시간 합성, 방송 납품</li>
+        <li><span class="tool-name">Mocha Pro</span>&nbsp;— 로토스코핑, 트래킹 특화</li>
+      </ul>
+    </div>
+    <div class="tool-card">
+      <div class="tool-cat">색보정 & 파이널라이징</div>
+      <ul class="tool-list">
+        <li><span class="tool-name">DaVinci Resolve</span>&nbsp;— 색보정(DI) 마스터 표준</li>
+        <li><span class="tool-name">Lustre</span>&nbsp;— 고급 컬러 그레이딩 워크스테이션</li>
+        <li><span class="tool-name">HDR 마스터링</span>&nbsp;— YouTube HDR, Dolby Vision</li>
+        <li><span class="tool-name">ACES 파이프라인</span>&nbsp;— 스튜디오급 색상 일관성</li>
+      </ul>
+    </div>
+    <div class="tool-card">
+      <div class="tool-cat">모션캡처 & 페이셜 캡처</div>
+      <ul class="tool-list">
+        <li><span class="tool-name">OptiTrack / Vicon</span>&nbsp;— 전신 모션캡처 시스템</li>
+        <li><span class="tool-name">MetaHuman Creator</span>&nbsp;— 고퀄리티 디지털 휴먼</li>
+        <li><span class="tool-name">iPhone TrueDepth</span>&nbsp;— 저비용 페이셜 캡처</li>
+        <li><span class="tool-name">XSens Suit</span>&nbsp;— 무선 IMU 바디 트래킹</li>
+      </ul>
+    </div>
+    <div class="tool-card">
+      <div class="tool-cat">AI/ML 기반 신기술</div>
+      <ul class="tool-list">
+        <li><span class="tool-name">Runway ML</span>&nbsp;— AI 인페인팅, 배경 제거 자동화</li>
+        <li><span class="tool-name">Topaz Video AI</span>&nbsp;— AI 업스케일링, 디노이즈</li>
+        <li><span class="tool-name">EbSynth</span>&nbsp;— 스타일트랜스퍼 VFX 자동화</li>
+        <li><span class="tool-name">Stable Diffusion</span>&nbsp;— 컨셉 아트, AI 합성 보조</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- PHASES -->
+<section id="phases">
+  <div class="section-header reveal">
+    <div class="section-num">06 — PRODUCTION PIPELINE</div>
+    <h2 class="section-title">K-pop MV <span>VFX 실무 제작 파이프라인</span></h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="reveal">
+    <div class="phases-tabs">
+      <div class="phase-tab active" onclick="switchTab(0)">
+        <div class="tab-title">PRE-PRODUCTION</div>
+        <div class="tab-sub">기획 ~ 촬영 전</div>
+      </div>
+      <div class="phase-tab" onclick="switchTab(1)">
+        <div class="tab-title">PRODUCTION</div>
+        <div class="tab-sub">실사 촬영 단계</div>
+      </div>
+      <div class="phase-tab" onclick="switchTab(2)">
+        <div class="tab-title">POST-PRODUCTION</div>
+        <div class="tab-sub">편집 ~ 납품</div>
+      </div>
+    </div>
+    <div class="phase-panel active" id="panel-0">
+      <div class="phase-item"><div class="phase-item-num">01</div><div class="phase-item-text">감독·기획사 크리에이티브 브리핑 — 아티스트 세계관, 음악 분위기, 레퍼런스 공유</div></div>
+      <div class="phase-item"><div class="phase-item-num">02</div><div class="phase-item-text">VFX 슈퍼바이저 투입 — 씬별 VFX 분류 및 기술 가능성 검토</div></div>
+      <div class="phase-item"><div class="phase-item-num">03</div><div class="phase-item-text">스토리보드 & 애니매틱 제작 — 타이밍, 카메라 무브, VFX 위치 확정</div></div>
+      <div class="phase-item"><div class="phase-item-num">04</div><div class="phase-item-text">기술 검토(테크비즈): 촬영 포맷, 카메라, 렌즈, 조명 방식 결정</div></div>
+      <div class="phase-item"><div class="phase-item-num">05</div><div class="phase-item-text">그린스크린/LED 볼륨 스테이지 확정 — 로케이션 vs. 스튜디오 전략 수립</div></div>
+      <div class="phase-item"><div class="phase-item-num">06</div><div class="phase-item-text">VFX 예산 세분화 — 씬별 견적 산출 및 우선순위 지정</div></div>
+      <div class="phase-item"><div class="phase-item-num">07</div><div class="phase-item-text">촬영팀과 VFX 팀 사전 기술 미팅 — 현장 데이터 수집 프로토콜 공유</div></div>
+    </div>
+    <div class="phase-panel panel-pink" id="panel-1">
+      <div class="phase-item"><div class="phase-item-num">01</div><div class="phase-item-text">VFX 슈퍼바이저 현장 상주 — 촬영 중 VFX 요소 실시간 확인</div></div>
+      <div class="phase-item"><div class="phase-item-num">02</div><div class="phase-item-text">그린스크린 스필 방지 라이팅 셋업 — 균일한 조명으로 키잉 품질 확보</div></div>
+      <div class="phase-item"><div class="phase-item-num">03</div><div class="phase-item-text">카메라 트래킹 마커 부착 및 기록 — 후반 3D 트래킹 정확도 향상</div></div>
+      <div class="phase-item"><div class="phase-item-num">04</div><div class="phase-item-text">HDRi 환경맵 촬영 — CG 조명을 실사와 일치시키는 핵심 데이터</div></div>
+      <div class="phase-item"><div class="phase-item-num">05</div><div class="phase-item-text">참조 컬러 차트 & 레퍼런스 구체 촬영 — 색보정 기준 데이터 확보</div></div>
+      <div class="phase-item"><div class="phase-item-num">06</div><div class="phase-item-text">모션캡처 병행 촬영 — 필요 씬의 퍼포머 모캡 데이터 동시 획득</div></div>
+      <div class="phase-item"><div class="phase-item-num">07</div><div class="phase-item-text">On-Set VFX 데이터 즉시 백업 — 현장 손실 방지 및 팀 간 데이터 공유</div></div>
+    </div>
+    <div class="phase-panel panel-cyan" id="panel-2">
+      <div class="phase-item"><div class="phase-item-num">01</div><div class="phase-item-text">편집본(오프라인) 확정 후 VFX 작업 시작 — 씬 변경 최소화 원칙 준수</div></div>
+      <div class="phase-item"><div class="phase-item-num">02</div><div class="phase-item-text">로토스코핑·매트 페인팅·3D 트래킹 — 기초 작업 병렬 진행</div></div>
+      <div class="phase-item"><div class="phase-item-num">03</div><div class="phase-item-text">CG 자산 파이널 렌더 — 팜 렌더(클라우드 포함) 활용으로 시간 단축</div></div>
+      <div class="phase-item"><div class="phase-item-num">04</div><div class="phase-item-text">Nuke 기반 멀티 레이어 합성 — EXR 멀티패스 합성으로 수정 유연성 확보</div></div>
+      <div class="phase-item"><div class="phase-item-num">05</div><div class="phase-item-text">VFX 슈퍼바이저 & 감독 리뷰 3~5회 — 단계별 승인으로 후반 재작업 방지</div></div>
+      <div class="phase-item"><div class="phase-item-num">06</div><div class="phase-item-text">DI: 색보정 및 HDR/SDR 마스터 제작 — ACES 워크플로우 기반</div></div>
+      <div class="phase-item"><div class="phase-item-num">07</div><div class="phase-item-text">유튜브/SNS 스펙 맞춤 인코딩 납품 — 플랫폼별 해상도·비트레이트 최적화</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CASE STUDIES -->
+<section id="cases">
+  <div class="section-header reveal">
+    <div class="section-num">07 — CASE STUDIES</div>
+    <h2 class="section-title">주요 사례 연구 — <span>아이코닉 K-pop MV VFX</span></h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="cases-list reveal">
+    <div class="case-card">
+      <div class="case-info">
+        <div class="case-artist">aespa</div>
+        <div class="case-mv">Black Mamba (2020)<br>Savage (2021)</div>
+        <div class="case-tech">TECH: Houdini · Maya · Nuke · Unreal Engine</div>
+      </div>
+      <div class="case-vfx">
+        <div class="case-vfx-label">VFX BREAKDOWN</div>
+        <div class="case-vfx-text">완전 CGI 세계관 'KWANGYA' 구현. 디지털 아바타 'ae-aespa'를 실제 멤버와 동일 화면에 배치. Houdini 기반 대규모 파티클 시스템과 CG 환경을 통해 전례 없는 K-pop 세계관을 완성했습니다.</div>
+      </div>
+      <div class="case-impact">
+        <div class="case-impact-label">IMPACT</div>
+        <div class="case-impact-text">데뷔 MV 24시간 2,000만 뷰. 'SM Universe' CGI 세계관의 출발점으로 IP 확장 초석 마련. 이후 aespa 캐릭터는 게임·굿즈 IP로 활용.</div>
+      </div>
+    </div>
+    <div class="case-card">
+      <div class="case-info">
+        <div class="case-artist">BLACKPINK</div>
+        <div class="case-mv">How You Like That (2020)<br>Shut Down (2022)</div>
+        <div class="case-tech">TECH: Maya · After Effects · DaVinci · Flame</div>
+      </div>
+      <div class="case-vfx">
+        <div class="case-vfx-label">VFX BREAKDOWN</div>
+        <div class="case-vfx-text">신화적 스케일의 CG 배경 세트(계단, 신전, 우주). 'Shut Down'에서 그리스 조각상 CG 변환 및 파괴 시퀀스. 아티스트 주변 대규모 파이어 & 스모크 시뮬레이션.</div>
+      </div>
+      <div class="case-impact">
+        <div class="case-impact-label">IMPACT</div>
+        <div class="case-impact-text">공개 24시간 내 유튜브 최다 조회 기록 수차례 갱신. 글로벌 미디어 VFX 화제성 집중. K-pop MV의 새로운 제작 기준 수립.</div>
+      </div>
+    </div>
+    <div class="case-card">
+      <div class="case-info">
+        <div class="case-artist">BTS</div>
+        <div class="case-mv">ON (2020) / Butter (2021)<br>Yet To Come (2022)</div>
+        <div class="case-tech">TECH: Cinema 4D · Nuke · Houdini · DaVinci</div>
+      </div>
+      <div class="case-vfx">
+        <div class="case-vfx-label">VFX BREAKDOWN</div>
+        <div class="case-vfx-text">'ON'에서 대규모 군무 배경 CG 확장 및 드라마틱 기상 FX. 'Yet To Come'은 실사 사막+CG 불꽃 파티클+홀로그램 구현. 글로벌 월드투어 무대 AR VFX와 연동.</div>
+      </div>
+      <div class="case-impact">
+        <div class="case-impact-label">IMPACT</div>
+        <div class="case-impact-text">각 MV마다 빌보드 HOT100 1위. VFX 퀄리티가 글로벌 기준점으로 작용. K-pop 제작 수준 격상에 결정적 기여.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHALLENGES -->
+<section id="challenges">
+  <div class="section-header reveal">
+    <div class="section-num">08 — CHALLENGES & SOLUTIONS</div>
+    <h2 class="section-title">실무 도전과제와 <span>현장 솔루션</span></h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="challenges-grid reveal">
+    <div class="challenge-card">
+      <div class="challenge-header">
+        <div class="challenge-title">촉박한 납기 일정</div>
+      </div>
+      <div class="challenge-body">
+        <div class="challenge-detail">K-pop MV는 앨범 발매 일정에 종속. 수정 요청이 반복되면 VFX 팀 크런치 발생. 특히 컴백 시즌에는 동시 다발적 MV 제작으로 인력 부족 현상이 심화됩니다.</div>
+        <div class="solution-label">SOLUTION</div>
+        <div class="solution-text">파이프라인 자동화(렌더팜, AI 업스케일링), 씬 우선순위 지정, 주간 리뷰 체계 구축으로 후반 수정 최소화. 클라우드 렌더팜 탄력 활용.</div>
+      </div>
+    </div>
+    <div class="challenge-card">
+      <div class="challenge-header">
+        <div class="challenge-title">기획사-VFX팀 소통 마찰</div>
+      </div>
+      <div class="challenge-body">
+        <div class="challenge-detail">비기술 담당자의 추상적 피드백('더 화려하게', '더 미래적으로')이 방향성 혼란 유발. 기획사 내부 의사결정 구조가 복잡해 최종 승인이 지연되는 경우가 빈번합니다.</div>
+        <div class="solution-label">SOLUTION</div>
+        <div class="solution-text">레퍼런스 영상 데이터베이스 공유, 중간 WIP 렌더 주 2회 이상 공유, VFX 코디네이터 전담 배치로 소통 채널 단일화.</div>
+      </div>
+    </div>
+    <div class="challenge-card">
+      <div class="challenge-header">
+        <div class="challenge-title">고퀄리티 렌더링 비용</div>
+      </div>
+      <div class="challenge-body">
+        <div class="challenge-detail">대규모 파티클·레이트레이싱 씬은 수백 시간의 렌더 시간과 수천만 원의 GPU 비용 발생. 중소 기획사에게 특히 높은 진입 장벽으로 작용합니다.</div>
+        <div class="solution-label">SOLUTION</div>
+        <div class="solution-text">클라우드 렌더팜(AWS, GCP) 탄력 활용, GPU 인스턴스 자동 스케일링, Unreal Engine 실시간 렌더 대체 전략으로 비용 30~50% 절감 가능.</div>
+      </div>
+    </div>
+    <div class="challenge-card">
+      <div class="challenge-header">
+        <div class="challenge-title">버전 관리 & 자산 충돌</div>
+      </div>
+      <div class="challenge-body">
+        <div class="challenge-detail">수십 명이 동시 작업 시 파일 버전 충돌, 자산 명명 규칙 혼선으로 재작업 발생. 특히 글로벌 팀과의 협업에서 타임존 차이로 인한 병목 현상이 심화됩니다.</div>
+        <div class="solution-label">SOLUTION</div>
+        <div class="solution-text">ShotGrid(Shotgun) 프로젝트 관리 도구 도입, 표준 파일 명명 규칙 문서화, Git 기반 씬 버전 관리로 충돌 원천 차단.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUTURE -->
+<section id="future">
+  <div class="section-header reveal">
+    <div class="section-num">09 — FUTURE & CONCLUSION</div>
+    <h2 class="section-title">미래 전망 & <span>핵심 결론</span></h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="future-layout reveal">
+    <div>
+      <p style="font-family:'Share Tech Mono',monospace;font-size:0.72rem;color:var(--cyan);letter-spacing:0.15em;margin-bottom:1.5rem;">향후 5년 핵심 트렌드</p>
+      <div class="trend-list">
+        <div class="trend-item">
+          <div class="trend-tag">[ AI ]</div>
+          <div class="trend-content">
+            <h4>AI 기반 VFX 자동화</h4>
+            <p>Runway, Sora급 AI 비디오 생성 도구가 배경·파티클 작업을 자동화. VFX 아티스트는 수퍼바이저·디렉터 역할로 전환이 가속화됩니다.</p>
+          </div>
+        </div>
+        <div class="trend-item">
+          <div class="trend-tag">[ VP ]</div>
+          <div class="trend-content">
+            <h4>버추얼 프로덕션 확산</h4>
+            <p>LED 볼륨 스테이지 도입이 국내 중소 기획사로 확산. SM·HYBE는 자체 버추얼 스테이지 상설 운영을 예정하고 있습니다.</p>
+          </div>
+        </div>
+        <div class="trend-item">
+          <div class="trend-tag">[ XR ]</div>
+          <div class="trend-content">
+            <h4>XR & Metaverse 연동</h4>
+            <p>K-pop MV가 메타버스 공연, AR 팬미팅과 연계된 멀티 플랫폼 VFX 자산으로 진화. 팬 인터랙티브 MV의 상용화가 눈앞에 다가왔습니다.</p>
+          </div>
+        </div>
+        <div class="trend-item">
+          <div class="trend-tag">[ CG ]</div>
+          <div class="trend-content">
+            <h4>디지털 휴먼 아이돌</h4>
+            <p>SM 나이비스(nævis), HYBE MAVE: 등 완전 CG 아이돌이 증가하고 있습니다. 실제 퍼포머와의 협업 콘텐츠로 경계가 점차 해체됩니다.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="conclusion-box">
+      <div class="conclusion-title">핵심 결론</div>
+      <div class="conclusion-list">
+        <div class="conclusion-item">
+          <div class="c-num">1</div>
+          <div>CGI와 VFX는 경쟁 관계가 아닌 상호 보완적 기술. 최적의 K-pop MV는 두 기술의 전략적 배합으로 완성됩니다.</div>
+        </div>
+        <div class="conclusion-item">
+          <div class="c-num">2</div>
+          <div>VFX 슈퍼바이저의 기획 초기 투입이 품질과 비용 효율을 동시에 결정하는 가장 중요한 변수입니다.</div>
+        </div>
+        <div class="conclusion-item">
+          <div class="c-num">3</div>
+          <div>기술 습득만큼 '아티스트의 세계관을 시각화하는 스토리텔링 역량'이 핵심 경쟁력으로 부상하고 있습니다.</div>
+        </div>
+        <div class="conclusion-item">
+          <div class="c-num">4</div>
+          <div>AI·실시간 렌더링 도입으로 진입 장벽이 낮아지며, 중소 기획사의 고퀄리티 MV 제작 기회가 확대되고 있습니다.</div>
+        </div>
+        <div class="conclusion-item">
+          <div class="c-num">5</div>
+          <div>국내 VFX 인재 양성과 글로벌 스튜디오와의 공동 제작 체계 구축이 산업 지속 성장의 열쇠입니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TAGLINE -->
+<div class="tagline-bar">
+  <div class="tagline">"K-pop의 미래는 <em>기술과 예술이 경계 없이 융합</em>되는 곳에 있다"</div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <span>K-POP VFX & CGI INDUSTRY REPORT · 2024/2025</span>
+  <span>한국 엔터테인먼트 시각효과 산업 분석</span>
+</footer>
+
+<!-- Back to top -->
+<div id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+  <svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>
+</div>
+
+<script>
+  // ── Cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursor-ring');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+  function animateCursor() {
+    cursor.style.left = mx + 'px';
+    cursor.style.top = my + 'px';
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    ring.style.left = rx + 'px';
+    ring.style.top = ry + 'px';
+    requestAnimationFrame(animateCursor);
+  }
+  animateCursor();
+  document.querySelectorAll('a,button,.phase-tab,.imp-card,.challenge-card,.case-card,.pipe-step').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.style.width = '20px';
+      cursor.style.height = '20px';
+      cursor.style.background = 'var(--cyan)';
+      ring.style.width = '50px';
+      ring.style.height = '50px';
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.style.width = '12px';
+      cursor.style.height = '12px';
+      cursor.style.background = 'var(--pink)';
+      ring.style.width = '36px';
+      ring.style.height = '36px';
+    });
+  });
+
+  // ── Progress bar
+  const prog = document.getElementById('progress');
+  window.addEventListener('scroll', () => {
+    const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
+    prog.style.width = pct + '%';
+    document.getElementById('back-top').classList.toggle('show', window.scrollY > 400);
+  });
+
+  // ── Reveal on scroll
+  const reveals = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver(entries => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+        // trigger bar animation
+        entry.target.querySelectorAll('.bar-fill').forEach(bar => {
+          const pct = bar.closest('.bar-item').dataset.pct;
+          setTimeout(() => bar.style.width = pct + '%', 300);
+        });
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => io.observe(el));
+
+  // ── Phase tabs
+  function switchTab(idx) {
+    document.querySelectorAll('.phase-tab').forEach((t,i) => t.classList.toggle('active', i === idx));
+    document.querySelectorAll('.phase-panel').forEach((p,i) => p.classList.toggle('active', i === idx));
+  }
+
+  // ── Glitch effect on hero title
+  const title = document.querySelector('.hero-title .line2');
+  const original = title.textContent;
+  const glitchChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+  function glitch() {
+    let iterations = 0;
+    const interval = setInterval(() => {
+      title.textContent = original.split('').map((char, i) => {
+        if (i < iterations) return original[i];
+        return char === ' ' ? ' ' : glitchChars[Math.floor(Math.random() * glitchChars.length)];
+      }).join('');
+      iterations += 0.5;
+      if (iterations >= original.length) {
+        clearInterval(interval);
+        title.textContent = original;
+      }
+    }, 30);
+  }
+  setTimeout(glitch, 1200);
+  setInterval(glitch, 8000);
+
+  // ── Scanline effect on hover for cards
+  document.querySelectorAll('.imp-card, .tool-card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      card.style.background = `radial-gradient(circle at ${x}% ${y}%, #1e1e40 0%, var(--card) 60%)`;
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.background = '';
+    });
+  });
+</script>
+</body>
+</html>
